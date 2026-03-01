@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список сотрудников</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5; /* Светло-серый */;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #346928  0%, #E88C2E 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .search-container {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            padding-left: 45px;
+            border: 2px solid #e1e5e9;
+            border-radius: 30px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23667eea" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>') no-repeat 15px center;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .stats {
+            background: #e9ecef;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .table-container {
+            padding: 20px 30px 30px;
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        thead {
+            background: linear-gradient(135deg, #346928 0%, #E88C2E 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #495057;
+        }
+
+        tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+            transform: scale(1.01);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .email-link {
+            color: #667eea;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s ease;
+        }
+
+        .email-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .email-link::before {
+            content: '✉️';
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        .empty-row {
+            background: #f1f3f5;
+            font-style: italic;
+            color: #868e96;
+        }
+
+        .empty-row td {
+            padding: 15px;
+            text-align: center;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-top: 2px solid #e9ecef;
+            color: #868e96;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
+        .pagination {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            background: white;
+            border: 2px solid #e9ecef;
+            color: #495057;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .page-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .items-per-page {
+            padding: 8px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 20px;
+            font-size: 0.95em;
+            color: #495057;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .footer {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            th, td {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="logo.png" alt="Логотип компании" style="height: 80px; margin-bottom: 15px;">
+            <h1>👥 Список сотрудников</h1>
+            <p>Полный перечень сотрудников с контактными email-адресами</p>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Поиск по имени или email..." autocomplete="off">
+            </div>
+            <div class="stats" id="stats">
+                Всего: <span id="totalCount">0</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="employeeTable">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>ФИО Сотрудника</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Данные будут загружены через JavaScript -->
+                </tbody>
+            </table>
+            
+            <div class="pagination">
+                <button class="page-btn" id="prevPage" disabled>←</button>
+                <div id="pageNumbers" style="display: flex; gap: 5px;"></div>
+                <button class="page-btn" id="nextPage" disabled>→</button>
+                <select id="itemsPerPage" class="items-per-page">
+                    <option value="20">20 на странице</option>
+                    <option value="50">50 на странице</option>
+                    <option value="100">100 на странице</option>
+                    <option value="all">Все</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div>📋 Данные актуальны на момент загрузки</div>
+            <button class="export-btn" id="exportBtn">
+                <span>📥</span> Экспорт в CSV
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Данные сотрудников из предоставленного CSV
+        const employees = [
+            { name: "Алексеева Марина Александровна", email: "alekseeva@transles.biz" },
+            { name: "Аленичева Ирина Васильевна", email: "alenicheva_iv@transles.biz" },
+            { name: "Алышева Юлия Олеговна", email: "alysheva_yo@transles.biz" },
+            { name: "Андриянова Татьяна Анатольевна", email: "Andriyanova_TA@transles.biz" },
+            { name: "Артамонов Андрей Андреевич", email: "artamonov_aa@transles.biz" },
+            { name: "Артамонов Артем Анатольевич ИТ", email: "Artamonov_a@transles.biz" },
+            { name: "Архангельский Андрей Михайлович", email: "arhangelsky@transles.biz" },
+            { name: "Афинова Ольга Викторовна", email: "afinova_ov@transles.biz" },
+            { name: "Багаева Алёна Ивановна", email: "bagaeva.kras@transles.biz" },
+            { name: "Балабанова Рената Ринатовна", email: "balabanova_rr@transles.biz" },
+            { name: "Бандукова Наталья Сергеевна", email: "bandukova.irk@transles.biz" },
+            { name: "Бархалева Надежда Николаевна", email: "barkhaleva@transles.biz" },
+            { name: "Батыркин Антон Юрьевич", email: "batyrkin@transles.biz" },
+            { name: "Белоусов Никита Олегович", email: "belousov_no@transles.biz" },
+            { name: "Бобрин Владимир Витальевич", email: "bobrin.khab@transles.biz" },
+            { name: "Божок Елена Александровна", email: "bozhok@transles.biz" },
+            { name: "Бородина Анна Романовна", email: "borodina_ar@transles.biz" },
+            { name: "Бородина Светлана Александровна", email: "borodina_sa@transles.biz" },
+            { name: "Бутрина Ольга Петровна", email: "butrina_op@transles.biz" },
+            { name: "Варганов Алексей Петрович", email: "varganov_ap@transles.biz" },
+            { name: "Власова Светлана Владимировна", email: "vlasova@transles.biz" },
+            { name: "Водясов Никита Дмитриевич", email: "vodyasov_nd@transles.biz" },
+            { name: "Волкова Галина Николаевна", email: "volkova@transles.biz" },
+            { name: "Волохова Елена Дмитриевна", email: "volokhova_ed@transles.biz" },
+            { name: "Гершелис Евгений Зиновьевич", email: "gershelis@transles.biz" },
+            { name: "Горбачева Ольга Вячеславовна", email: "gorbacheva_ov@transles.biz" },
+            { name: "Горбунов Евгений Анатольевич", email: "gorbunov_ea@transles.biz" },
+            { name: "Горбунова Алена Сергеевна", email: "gorbunova_as@transles.biz" },
+            { name: "Горохова Татьяна Валерьевна", email: "agapova_tv@transles.biz" },
+            { name: "Гречко Анна Сергеевна", email: "grechko@transles.biz" },
+            { name: "Григорьева Наталия Александровна", email: "grigoryeva_na@transles.biz" },
+            { name: "Громов Роман Александрович", email: "gromov_ra@transles.biz" },
+            { name: "Дегтярев Виктор Александрович", email: "degtyarev@transles.biz" },
+            { name: "Дейнеко Евгения Алексеевна", email: "deineko_ea@transles.biz" },
+            { name: "Демченко Полина Сергеевна", email: "demchenko_ps@transles.biz" },
+            { name: "Дерунова Екатерина Викторовна", email: "derunova_ev@transles.biz" },
+            { name: "Дмитренко Елена Юрьевна", email: "dmitrenko_ey@transles.biz" },
+            { name: "Дударев Максим Сергеевич", email: "dudarev@transles.biz" },
+            { name: "Дядюк Сергей Николаевич", email: "dyadyuk_sn@transles.biz" },
+            { name: "Елагина Евгения Валерьевна", email: "elagina_ev@transles.biz" },
+            { name: "Ефремов Никита Анатольевич", email: "Nikita.Efremov@dholding.ru" },
+            { name: "Жарова Ольга Александровна", email: "zharova_oa@transles.biz" },
+            { name: "Забельникова Евгения Юрьевна", email: "zabelnikova_ey@transles.biz" },
+            { name: "Зезюля Галина Васильевна", email: "zezyulya@transles.biz" },
+            { name: "Земсков Павел Анатольевич", email: "zemskov_pa@transles.biz" },
+            { name: "Иванов Алексей Владимирович", email: "ivanov_av@transles.biz" },
+            { name: "Иванов Михаил Николаевич", email: "ivanov_mn@transles.biz" },
+            { name: "Иванов Петр Алексеевич", email: "ivanov_pa@transles.biz" },
+            { name: "Истомина Мария Иннокентьевна", email: "istomina_mi@transles.biz" },
+            { name: "Кабанова Лада Романовна", email: "kabanova_lr@transles.biz" },
+            { name: "Казакова Гозель Миркулиевна", email: "kazakova@transles.biz" },
+            { name: "Каникевич Елена Александровна", email: "pritykina@transles.biz" },
+            { name: "Каширина Мария Григорьевна", email: "morozova.mg@transles.biz" },
+            { name: "Кирилин Сергей Владимирович", email: "kirilin@transles.biz" },
+            { name: "Кислицына Ирина Владимировна", email: "kislitsyna_iv@transles.biz" },
+            { name: "Князева Елена Вячеславовна", email: "knyazeva@transles.biz" },
+            { name: "Ковалев Сергей Владимирович", email: "kovalev@transles.biz" },
+            { name: "Коваль Ольга Геннадьевна", email: "koval_og@transles.biz" },
+            { name: "Кожнова Инесса Валерьевна", email: "kozhnova_iv@transles.biz" },
+            { name: "Козаченко Анна Михайловна", email: "kozachenko@transles.biz" },
+            { name: "Козаченко Илья Евгеньевич", email: "kozachenko_ie@transles.biz" },
+            { name: "Коковихин Максим Сергеевич", email: "kokovihin_ms@transles.biz" },
+            { name: "Комарова Оксана Александровна", email: "Komarova_oa@transles.biz" },
+            { name: "Коновьёва Екатерина Андреевна", email: "konovyova_ea@transles.biz" },
+            { name: "Кормилицын Георгий Вадимович", email: "kormilitsyn_gv@transles.biz" },
+            { name: "Корчажкина Лариса Валентиновна", email: "korchazhkina_lv@transles.biz" },
+            { name: "Кравченко Мария Игоревна", email: "kravchenko_mi@transles.biz" },
+            { name: "Кратова Полина Викторовна", email: "kratova_pv@transles.biz" },
+            { name: "Круглова Людмила Мидхатовна", email: "kruglova.nnov@transles.biz" },
+            { name: "Кружкова Анастасия Васильевна", email: "kruzhkova@transles.biz" },
+            { name: "Кудакин Дмитрий Анатольевич", email: "Dmitriy.Kudakin@dholding.ru" },
+            { name: "Кузнецова Анастасия Юрьевна", email: "kudryavceva_ay@transles.biz" },
+            { name: "Кузнецова Светлана Игоревна", email: "kuznetsova_si@transles.biz" },
+            { name: "Курятникова Марина Юрьевна", email: "kuryatnikova_my@transles.biz" },
+            { name: "Ланина Олеся Владимировна", email: "lanina@transles.biz" },
+            { name: "Леви Василий Андреевич", email: "levi.irk@transles.biz" },
+            { name: "Левченко Екатерина Александровна", email: "levchenko_ea@transles.biz" },
+            { name: "Литвинова Ольга Константиновна", email: "litvinova_ok@transles.biz" },
+            { name: "Магомеджанов Азамат Маллаевич", email: "Magomedzhanov_am@transles.biz" },
+            { name: "Макаревич Елена Валерьевна", email: "kolycheva@transles.biz" },
+            { name: "Макарова Анастасия Михайловна", email: "makarova@transles.biz" },
+            { name: "Максимова Алёна Сергеевна", email: "solovyeva_as@transles.biz" },
+            { name: "Мамаева Юлия Владимировна", email: "mamaeva_yv@transles.biz" },
+            { name: "Маринина Валерия Олеговна", email: "marinina_vo@transles.biz" },
+            { name: "Мехоношина Валерия Сергеевна", email: "mekhonoshina_vs@transles.biz" },
+            { name: "Молоканова Элеонора Николаевна", email: "molokanova@transles.biz" },
+            { name: "Нафанов Андрей Михайлович", email: "nafanov@transles.biz" },
+            { name: "Нестёркина Елена Валерьевна", email: "chaikovskaya_ev@transles.biz" },
+            { name: "Нестеров Павел Олегович", email: "nesterov_po@transles.biz" },
+            { name: "Новикова Галина Ивановна", email: "novikova_gi@transles.biz" },
+            { name: "Носов Виктор Викторович", email: "nosov@transles.biz" },
+            { name: "Одинаева Ирина Сергеевна", email: "odinaeva_is@transles.biz" },
+            { name: "Озеров Олег Владимирович", email: "ozerov_ov@transles.biz" },
+            { name: "Опалева Наталья Николаевна", email: "opaleva@transles.biz" },
+            { name: "Островская Ольга Александровна", email: "ostrovskaya.kras@transles.biz" },
+            { name: "Парфенюк Анна Евгеньевна", email: "parfenyuk_ae@transles.biz" },
+            { name: "Паутов Николай Николаевич", email: "pautov_nn@transles.biz" },
+            { name: "Перепелицына Алла Николаевна", email: "perepelicyna_an@transles.biz" },
+            { name: "Петрачкова Мария Игоревна", email: "petrachkova_mi@transles.biz" },
+            { name: "Петрокайтес Екатерина Андреевна", email: "lunina@transles.biz" },
+            { name: "Петрунин Дмитрий Владимирович", email: "Petrunin_dv@transles.biz" },
+            { name: "Плис Станислав Анатольевич", email: "plis_sa@transles.biz" },
+            { name: "Поваляева Лидия Александровна", email: "povalyaeva_la@transles.biz" },
+            { name: "Полищук Юлия Сергеевна", email: "kruteleva_ys@transles.biz" },
+            { name: "Полуботко Лилия Юрьевна", email: "vorobieva_l@transles.biz" },
+            { name: "Полушко Ирина Вячеславовна", email: "polushko_iv@transles.biz" },
+            { name: "Пономарева Галина Станиславовна", email: "ponomareva_gs@transles.biz" },
+            { name: "Потехина Наталья Васильевна", email: "potekhina_nv@transles.biz" },
+            { name: "Пошивалов Александр Сергеевич", email: "poshivalov_as@transles.biz" },
+            { name: "Прохорская Злата Александровна", email: "makhnovskaia@transles.biz" },
+            { name: "Прусова Мария Вячеславовна", email: "prusova_mv@transles.biz" },
+            { name: "Пряников Руслан Васильевич", email: "pryanikov_rv@transles.biz" },
+            { name: "Пчелинцева Ольга Владимировна", email: "pchelinceva_ov@transles.biz" },
+            { name: "Пятов Роман Алексеевич", email: "pyatov@transles.biz" },
+            { name: "Рахимова Анна Хусановна", email: "rahimova_ah@transles.biz" },
+            { name: "Решетнева Елена Владимировна", email: "reshetneva@transles.biz" },
+            { name: "Рогачев Данила Петрович", email: "rogachev.spb@transles.biz" },
+            { name: "Родная Марина Викторовна", email: "rodnaya_mv@transles.biz" },
+            { name: "Романчева Наталия Ивановна", email: "romancheva@transles.biz" },
+            { name: "Рыкина Наталья Владимировна", email: "rykina_nv@transles.biz" },
+            { name: "Савенкова Екатерина Александровна", email: "savenkova_ea@transles.biz" },
+            { name: "Салунин Герман Игоревич", email: "salunin_gi@transles.biz" },
+            { name: "Седых Андрей Сергеевич", email: "sedyh_as@transles.biz" },
+            { name: "Семенников Александр Федорович", email: "semennikov_af@transles.biz" },
+            { name: "Семенов Дмитрий Александрович", email: "semenov_da@transles.biz" },
+            { name: "Середкин Андрей Викторович", email: "seredkin_av@transles.biz" },
+            { name: "Серяченко Елена Викторовна", email: "seryachenko_ev@transles.biz" },
+            { name: "Ситникова Ирина Александровна", email: "sitnikova.kras@transles.biz" },
+            { name: "Скрипник Юлия Александровна", email: "kravchenko@transles.biz" },
+            { name: "Смоляков Сергей Геннадиевич", email: "smolyakov@transles.biz" },
+            { name: "Соболев Илья Владимирович", email: "sobolev_iv@transles.biz" },
+            { name: "Соколова Янина Георгиевна", email: "sokolova_ig@transles.biz" },
+            { name: "Столярова Карина Каримджоновна", email: "stolyarova_kk@transles.biz" },
+            { name: "Строганова Анна Алексеевна", email: "stroganova_aa@transles.biz" },
+            { name: "Субботин Виктор Арсентьевич", email: "subbotin.spb@transles.biz" },
+            { name: "Сухарев Сергей Александрович", email: "sukharev_sa@transles.biz" },
+            { name: "Сухорукова Татьяна Анатольевна", email: "suhorukova@transles.biz" },
+            { name: "Сырова Ольга Анатольевна", email: "syrova@transles.biz" },
+            { name: "Табуров Денис Юрьевич", email: "dtaburov@atlant-rail.ru" },
+            { name: "Таразевич Артемий Андреевич", email: "tarazevich_aa@transles.biz" },
+            { name: "Ткач Андрей Михайлович", email: "tkach_am@transles.biz" },
+            { name: "Ткаченко Андрей Алексеевич (совм.)", email: "Andrey.Tkachenko@dholding.ru" },
+            { name: "Токарев Иван Александрович", email: "tokarev_ia@transles.biz" },
+            { name: "Трофимова Наталья Борисовна", email: "trofimova@transles.biz" },
+            { name: "Турланов Андрей Владимирович", email: "turlanov_av@transles.biz" },
+            { name: "Уварова Наталья Викторовна", email: "uvarova_nv@transles.biz" },
+            { name: "Уткина Марина Алексеевна", email: "utkina@transles.biz" },
+            { name: "Ушков Максим Сергеевич", email: "ushkov@transles.biz" },
+            { name: "Федин Павел Анатольевич", email: "fedin_pa@transles.biz" },
+            { name: "Фирсов Сергей Васильевич", email: "firsov.irk@transles.biz" },
+            { name: "Фомина Яна Сергеевна", email: "fomina_ys@transles.biz" },
+            { name: "Харьков Андрей Сергеевич", email: "kharkov_as@transles.biz" },
+            { name: "Хилевич Александр Николаевич", email: "khilevich@transles.biz" },
+            { name: "Хорунжая Ольга Ярославовна", email: "horunzhaya_oy@transles.biz" },
+            { name: "Хоштария Ольга Владимировна", email: "khoshtariya.nnov@transles.biz" },
+            { name: "Черных Ольга Петровна", email: "chernykh@transles.biz" },
+            { name: "Черныш Людмила Александровна", email: "chernysh_la@transles.biz" },
+            { name: "Чумаевская Оксана Владимировна", email: "chumaevskaya_ov@transles.biz" },
+            { name: "Шамрай Светлана Владимировна", email: "shamraj_sv@transles.biz" },
+            { name: "Шамшадинова Екатерина Анатольевна", email: "shamshadinova_ea@transles.biz" },
+            { name: "Шамыгина Анна Николаевна", email: "shamigina@transles.biz" },
+            { name: "Шильцина Мария Александровна", email: "shilcina_ma@transles.biz" },
+            { name: "Шишков Роман Юрьевич", email: "shishkov@transles.biz" },
+            { name: "Шубная Альбина Андреевна", email: "shubnaia_aa@transles.biz" },
+            { name: "Шукалов Алексей Сергеевич", email: "shukalov_as@transles.biz" },
+            { name: "Юдин Степан Сергеевич", email: "judin_ss@transles.biz" },
+            { name: "Ющина Елена Викторовна", email: "yushchina_ev@transles.biz" }
+        ];
+
+        // Текущее состояние
+        let currentPage = 1;
+        let itemsPerPage = 20;
+        let searchTerm = '';
+        let filteredEmployees = [...employees];
+
+        // Элементы DOM
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const totalCountSpan = document.getElementById('totalCount');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const pageNumbersDiv = document.getElementById('pageNumbers');
+        const itemsPerPageSelect = document.getElementById('itemsPerPage');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Обновление статистики
+        totalCountSpan.textContent = employees.length;
+
+        // Функция фильтрации
+        function filterEmployees() {
+            if (!searchTerm.trim()) {
+                filteredEmployees = [...employees];
+            } else {
+                const term = searchTerm.toLowerCase().trim();
+                filteredEmployees = employees.filter(emp => 
+                    emp.name.toLowerCase().includes(term) || 
+                    emp.email.toLowerCase().includes(term)
+                );
+            }
+            currentPage = 1;
+            renderTable();
+        }
+
+        // Функция рендеринга таблицы
+        function renderTable() {
+            let startIndex, endIndex, paginatedEmployees;
+            
+            if (itemsPerPage === 'all') {
+                paginatedEmployees = filteredEmployees;
+                startIndex = 0;
+                endIndex = filteredEmployees.length;
+            } else {
+                const perPage = parseInt(itemsPerPage);
+                startIndex = (currentPage - 1) * perPage;
+                endIndex = Math.min(startIndex + perPage, filteredEmployees.length);
+                paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+            }
+
+            if (paginatedEmployees.length === 0) {
+                tableBody.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="3">😕 По вашему запросу ничего не найдено</td>
+                    </tr>
+                `;
+            } else {
+                let html = '';
+                paginatedEmployees.forEach((emp, index) => {
+                    const rowNumber = itemsPerPage === 'all' ? index + 1 : startIndex + index + 1;
+                    html += `
+                        <tr>
+                            <td>${rowNumber}</td>
+                            <td>${emp.name}</td>
+                            <td>
+                                <a href="mailto:${emp.email}" class="email-link">
+                                    ${emp.email}
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tableBody.innerHTML = html;
+            }
+
+            updatePagination();
+        }
+
+        // Обновление пагинации
+        function updatePagination() {
+            const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredEmployees.length / parseInt(itemsPerPage));
+            
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+
+            let pageNumbersHtml = '';
+            const maxVisiblePages = 5;
+            
+            if (totalPages > 0) {
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                
+                if (endPage - startPage + 1 < maxVisiblePages) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+
+                if (startPage > 1) {
+                    pageNumbersHtml += `<button class="page-btn" data-page="1">1</button>`;
+                    if (startPage > 2) {
+                        pageNumbersHtml += `<span style="padding: 0 5px;">...</span>`;
+                    }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    pageNumbersHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        pageNumbersHtml += `<span style="padding: 0 5px;">...</span>`;
+                    }
+                    pageNumbersHtml += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
+                }
+            }
+
+            pageNumbersDiv.innerHTML = pageNumbersHtml;
+
+            // Добавляем обработчики для кнопок страниц
+            document.querySelectorAll('.page-btn[data-page]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentPage = parseInt(btn.dataset.page);
+                    renderTable();
+                });
+            });
+        }
+
+        // Обработчики событий
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            filterEmployees();
+        });
+
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredEmployees.length / parseInt(itemsPerPage));
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        itemsPerPageSelect.addEventListener('change', (e) => {
+            itemsPerPage = e.target.value;
+            currentPage = 1;
+            renderTable();
+        });
+
+        // Экспорт в CSV
+        exportBtn.addEventListener('click', () => {
+            const dataToExport = searchTerm ? filteredEmployees : employees;
+            
+            if (dataToExport.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            // Создаем CSV контент
+            let csvContent = "ФИО;Email\n";
+            dataToExport.forEach(emp => {
+                csvContent += `"${emp.name}";"${emp.email}"\n`;
+            });
+
+            // Создаем и скачиваем файл
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', 'employees.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+
+        // Инициализация
+        renderTable();
+    </script>
+</body>
+</html>
