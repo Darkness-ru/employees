@@ -1,8 +1,7 @@
 const fs = require('fs');
 
-// Читаем CSV-файл
-const csvContent = fs.readFileSync('employees.csv', 'utf8');
-const lines = csvContent.trim().split('\n');
+// Читаем CSV-файл с явным указанием UTF-8
+const csvContent = fs.readFileSync('employees.csv', 'utf8');  // Убедитесь, что есть 'utf8'
 
 // Первая строка - заголовки
 const headers = lines[0].split(',');
