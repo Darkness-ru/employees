@@ -1,0 +1,32 @@
+name: Автообновление сайта из CSV
+
+on:
+  push:
+    paths:
+      - 'employees.csv'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Convert CSV
+        run: node convert.js
+      
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add index.html
+          git diff --quiet && git diff --staged --quiet || git commit -m "Автообновление"
+          git push
