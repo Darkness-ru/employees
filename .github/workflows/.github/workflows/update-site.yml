@@ -1,0 +1,58 @@
+name: Автообновление сайта из CSV
+
+on:
+  push:
+    paths:
+      - 'employees.csv'  # Запускается только при изменении CSV
+  workflow_dispatch:     # Можно запускать вручную
+
+permissions:
+  contents: write        # Разрешаем запись в репозиторий
+  pages: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Шаг 1: Скачиваем код репозитория
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Шаг 2: Устанавливаем Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      # ШАГ 3: ЗАПУСКАЕМ КОНВЕРТАЦИЮ
+      - name: Convert CSV to JavaScript array
+        run: node convert.js
+      
+      # Шаг 4: Проверяем, были ли изменения
+      - name: Check if index.html was modified
+        id: git-check
+        run: |
+          git diff --quiet index.html || echo "changed=true" >> $GITHUB_OUTPUT
+      
+      # Шаг 5: Сохраняем изменения
+      - name: Commit and push changes
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'actions@github.com'
+          git add index.html
+          git commit -m "Автообновление: сотрудники из employees.csv"
+          git push
+      
+      # Шаг 6: Публикуем на GitHub Pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
