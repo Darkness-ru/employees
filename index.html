@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Список сотрудников</title>
     <style>
+        /* ВАШИ СТИЛИ (оставьте те, что уже есть) */
         * {
             margin: 0;
             padding: 0;
@@ -179,25 +180,19 @@
     </div>
 
     <script>
-        // ДАННЫЕ НАПРЯМУЮ ИЗ ФАЙЛА (ВРЕМЕННОЕ РЕШЕНИЕ)
-        const employees = [
-            { "name": "Алексеева Марина Александровна", "email": "alekseeva@transles.biz" },
-            { "name": "Аленичева Ирина Васильевна", "email": "alenicheva_iv@transles.biz" },
-            { "name": "Алышева Юлия Олеговна", "email": "alysheva_yo@transles.biz" },
-            { "name": "Андриянова Татьяна Анатольевна", "email": "Andriyanova_TA@transles.biz" },
-            { "name": "Артамонов Андрей Андреевич", "email": "artamonov_aa@transles.biz" },
-            { "name": "Артамонов Артем Анатольевич ИТ", "email": "Artamonov_a@transles.biz" },
-            { "name": "Архангельский Андрей Михайлович", "email": "arhangelsky@transles.biz" },
-            { "name": "Афинова Ольга Викторовна", "email": "afinova_ov@transles.biz" },
-            { "name": "Багаева Алёна Ивановна", "email": "bagaeva.kras@transles.biz" },
-            { "name": "Балабанова Рената Ринатовна", "email": "balabanova_rr@transles.biz" }
-        ]; // Добавьте остальных сотрудников по аналогии
-
-        let filteredEmployees = [...employees];
+        // URL вашего веб-приложения (ЗАМЕНИТЕ НА ВАШ!)
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8WlT3VX9X9X9X9X9X9X9X9X9X9X9X/exec';
+        
+        // Данные сотрудников
+        let employees = [];
+        let filteredEmployees = [];
+        
+        // Текущее состояние
         let currentPage = 1;
         let itemsPerPage = 20;
         let searchTerm = '';
 
+        // Элементы DOM
         const tableBody = document.getElementById('tableBody');
         const searchInput = document.getElementById('searchInput');
         const totalCountSpan = document.getElementById('totalCount');
@@ -207,13 +202,77 @@
         const itemsPerPageSelect = document.getElementById('itemsPerPage');
         const exportBtn = document.getElementById('exportBtn');
 
-        // Обновление статистики
-        totalCountSpan.textContent = employees.length;
+        // Функция для JSONP-запроса (ОБХОДИТ CORS)
+        function loadEmployeesWithJSONP() {
+            return new Promise((resolve, reject) => {
+                // Создаем уникальное имя callback-функции
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                
+                // Создаем функцию в глобальной области видимости
+                window[callbackName] = function(data) {
+                    // Удаляем скрипт и функцию после загрузки
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                    
+                    if (data.error) {
+                        reject(new Error(data.error));
+                    } else {
+                        resolve(data);
+                    }
+                };
+                
+                // Создаем тег script для JSONP-запроса
+                const script = document.createElement('script');
+                script.src = API_URL + '?callback=' + callbackName;
+                
+                // Обработка ошибок
+                script.onerror = function() {
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('Ошибка загрузки данных'));
+                };
+                
+                // Добавляем скрипт на страницу (он выполнится автоматически)
+                document.body.appendChild(script);
+            });
+        }
 
+        // Загрузка данных
+        async function loadEmployees() {
+            try {
+                console.log('Загрузка данных через JSONP...');
+                tableBody.innerHTML = '<tr><td colspan="3">Загрузка данных...</td></tr>';
+                
+                const data = await loadEmployeesWithJSONP();
+                
+                employees = data.employees || [];
+                console.log(`Загружено ${employees.length} сотрудников`);
+                
+                // Обновляем счетчик
+                totalCountSpan.textContent = employees.length;
+                filteredEmployees = [...employees];
+                
+                // Рендерим таблицу
+                renderTable();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                tableBody.innerHTML = '<tr><td colspan="3">Ошибка загрузки данных</td></tr>';
+            }
+        }
+
+        // Функция рендеринга таблицы
         function renderTable() {
+            if (!employees || employees.length === 0) return;
+            
             let startIndex = (currentPage - 1) * itemsPerPage;
             let endIndex = Math.min(startIndex + itemsPerPage, filteredEmployees.length);
             let paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+            if (paginatedEmployees.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3">😕 Ничего не найдено</td></tr>';
+                return;
+            }
 
             let html = '';
             paginatedEmployees.forEach((emp, index) => {
@@ -225,14 +284,10 @@
                     </tr>
                 `;
             });
-            
-            if (html === '') {
-                tableBody.innerHTML = '<tr><td colspan="3">😕 Ничего не найдено</td></tr>';
-            } else {
-                tableBody.innerHTML = html;
-            }
+            tableBody.innerHTML = html;
         }
 
+        // Функция фильтрации
         function filterEmployees() {
             if (!searchTerm.trim()) {
                 filteredEmployees = [...employees];
@@ -247,6 +302,7 @@
             renderTable();
         }
 
+        // Обработчики событий
         searchInput.addEventListener('input', filterEmployees);
         
         itemsPerPageSelect.addEventListener('change', (e) => {
@@ -283,7 +339,11 @@
             link.click();
         });
 
-        renderTable();
+        // Загружаем данные при старте
+        loadEmployees();
+        
+        // Обновляем каждые 5 минут
+        setInterval(loadEmployees, 5 * 60 * 1000);
     </script>
 </body>
 </html>
