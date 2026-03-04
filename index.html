@@ -1189,6 +1189,45 @@
         // Инициализация
         renderTable();
     </script>
-</body>
+</body><script>
+    // URL вашего веб-приложения Google Apps Script
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxxdPD1nNz9gyXwgfqb4KPzHDAgN4kZ7N_KoWKGIgdnd82Ff_iYNqIM7p1tWIybDZg/exec';
+    
+    // Данные сотрудников
+    let employees = [];
+    
+    // Загрузка данных из Google Sheets
+    async function loadEmployees() {
+        try {
+            console.log('Загрузка данных...');
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('Ошибка API:', data.error);
+                return;
+            }
+            
+            employees = data.employees || [];
+            console.log(`Загружено ${employees.length} сотрудников`);
+            
+            // Здесь должна быть ваша функция для отображения таблицы
+            // Если у вас есть функция renderTable(), вызовите её
+            if (typeof renderTable === 'function') {
+                renderTable();
+            }
+            
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+        }
+    }
+    
+    // Загружаем данные при загрузке страницы
+    loadEmployees();
+    
+    // Обновляем каждые 5 минут
+    setInterval(loadEmployees, 5 * 60 * 1000);
+</script>
 </html>
+
 
