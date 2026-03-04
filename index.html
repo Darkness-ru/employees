@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Список сотрудников</title>
     <style>
-        /* ВАШИ СТИЛИ (оставьте те, что уже есть) */
         * {
             margin: 0;
             padding: 0;
@@ -180,8 +179,8 @@
     </div>
 
     <script>
-        // URL вашего веб-приложения (ЗАМЕНИТЕ НА ВАШ!)
-        const API_URL = 'https://script.google.com/macros/s/AKfycbx8WlT3VX9X9X9X9X9X9X9X9X9X9X9X/exec';
+        // URL вашего веб-приложения (ЗАМЕНИТЕ НА ВАШ НОВЫЙ URL)
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwoJmV65qVADmmkVmNKMPhLldVlNyUPkNbU0FFzr6778j3YR1vzfloAZ66tciAdnR4/exec';
         
         // Данные сотрудников
         let employees = [];
@@ -202,15 +201,22 @@
         const itemsPerPageSelect = document.getElementById('itemsPerPage');
         const exportBtn = document.getElementById('exportBtn');
 
-        // Функция для JSONP-запроса (ОБХОДИТ CORS)
+        // Функция для JSONP-запроса (обход CORS)
         function loadEmployeesWithJSONP() {
             return new Promise((resolve, reject) => {
                 // Создаем уникальное имя callback-функции
                 const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
                 
+                // Таймаут на случай ошибки
+                const timeout = setTimeout(() => {
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('Таймаут загрузки'));
+                }, 10000);
+                
                 // Создаем функцию в глобальной области видимости
                 window[callbackName] = function(data) {
-                    // Удаляем скрипт и функцию после загрузки
+                    clearTimeout(timeout);
                     document.body.removeChild(script);
                     delete window[callbackName];
                     
@@ -227,12 +233,13 @@
                 
                 // Обработка ошибок
                 script.onerror = function() {
+                    clearTimeout(timeout);
                     document.body.removeChild(script);
                     delete window[callbackName];
-                    reject(new Error('Ошибка загрузки данных'));
+                    reject(new Error('Ошибка сети'));
                 };
                 
-                // Добавляем скрипт на страницу (он выполнится автоматически)
+                // Добавляем скрипт на страницу
                 document.body.appendChild(script);
             });
         }
@@ -240,7 +247,6 @@
         // Загрузка данных
         async function loadEmployees() {
             try {
-                console.log('Загрузка данных через JSONP...');
                 tableBody.innerHTML = '<tr><td colspan="3">Загрузка данных...</td></tr>';
                 
                 const data = await loadEmployeesWithJSONP();
@@ -248,22 +254,20 @@
                 employees = data.employees || [];
                 console.log(`Загружено ${employees.length} сотрудников`);
                 
-                // Обновляем счетчик
                 totalCountSpan.textContent = employees.length;
                 filteredEmployees = [...employees];
                 
-                // Рендерим таблицу
                 renderTable();
                 
             } catch (error) {
-                console.error('Ошибка загрузки:', error);
+                console.error('Ошибка:', error);
                 tableBody.innerHTML = '<tr><td colspan="3">Ошибка загрузки данных</td></tr>';
             }
         }
 
         // Функция рендеринга таблицы
         function renderTable() {
-            if (!employees || employees.length === 0) return;
+            if (employees.length === 0) return;
             
             let startIndex = (currentPage - 1) * itemsPerPage;
             let endIndex = Math.min(startIndex + itemsPerPage, filteredEmployees.length);
