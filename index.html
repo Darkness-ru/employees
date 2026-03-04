@@ -1,233 +1,289 @@
-<script>
-    // URL вашего веб-приложения Google Apps Script
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzdRiQmRGHUd42_qSdIP_P8rY4x5i9HgcdfaRL2_EtUWmJ98XqwM5rGDR7R2-LrrJEJ/exec';
-    
-    // Данные сотрудников
-    let employees = [];
-    let filteredEmployees = [];
-    
-    // Текущее состояние
-    let currentPage = 1;
-    let itemsPerPage = 20;
-    let searchTerm = '';
-
-    // Элементы DOM
-    const tableBody = document.getElementById('tableBody');
-    const searchInput = document.getElementById('searchInput');
-    const totalCountSpan = document.getElementById('totalCount');
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    const pageNumbersDiv = document.getElementById('pageNumbers');
-    const itemsPerPageSelect = document.getElementById('itemsPerPage');
-    const exportBtn = document.getElementById('exportBtn');
-
-    // Загрузка данных из Google Sheets
-    async function loadEmployees() {
-        try {
-            console.log('Загрузка данных...');
-            const response = await fetch(API_URL);
-            const data = await response.json();
-            
-            if (data.error) {
-                console.error('Ошибка API:', data.error);
-                return;
-            }
-            
-            employees = data.employees || [];
-            console.log(`Загружено ${employees.length} сотрудников`);
-            console.log('Первый сотрудник:', employees[0]?.name);
-            
-            // Обновляем счетчик
-            totalCountSpan.textContent = employees.length;
-            filteredEmployees = [...employees];
-            
-            // Рендерим таблицу
-            renderTable();
-            
-        } catch (error) {
-            console.error('Ошибка загрузки:', error);
-        }
-    }
-
-    // Функция фильтрации
-    function filterEmployees() {
-        if (!searchTerm.trim()) {
-            filteredEmployees = [...employees];
-        } else {
-            const term = searchTerm.toLowerCase().trim();
-            filteredEmployees = employees.filter(emp => 
-                emp.name.toLowerCase().includes(term) || 
-                emp.email.toLowerCase().includes(term)
-            );
-        }
-        currentPage = 1;
-        renderTable();
-    }
-
-    // Функция рендеринга таблицы
-    function renderTable() {
-        if (!employees || employees.length === 0) {
-            tableBody.innerHTML = `
-                <tr class="empty-row">
-                    <td colspan="3">😕 Загрузка данных...</td>
-                </tr>
-            `;
-            return;
-        }
-        
-        let startIndex, endIndex, paginatedEmployees;
-        
-        if (itemsPerPage === 'all') {
-            paginatedEmployees = filteredEmployees;
-            startIndex = 0;
-            endIndex = filteredEmployees.length;
-        } else {
-            const perPage = parseInt(itemsPerPage);
-            startIndex = (currentPage - 1) * perPage;
-            endIndex = Math.min(startIndex + perPage, filteredEmployees.length);
-            paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список сотрудников</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        if (paginatedEmployees.length === 0) {
-            tableBody.innerHTML = `
-                <tr class="empty-row">
-                    <td colspan="3">😕 По вашему запросу ничего не найдено</td>
-                </tr>
-            `;
-        } else {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5dc;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #346928 0%, #E88C2E 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header img {
+            height: 80px;
+            margin-bottom: 15px;
+        }
+
+        .search-container {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 30px;
+            font-size: 16px;
+        }
+
+        .stats {
+            background: #e9ecef;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        .table-container {
+            padding: 20px 30px 30px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #346928 0%, #E88C2E 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .email-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            background: white;
+            border: 2px solid #e9ecef;
+            color: #495057;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="logo.png" alt="Логотип">
+            <h1>👥 Список сотрудников</h1>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Поиск по имени или email...">
+            </div>
+            <div class="stats" id="stats">
+                Всего: <span id="totalCount">0</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="employeeTable">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>ФИО Сотрудника</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="3">Загрузка...</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="pagination">
+                <button class="page-btn" id="prevPage" disabled>←</button>
+                <div id="pageNumbers"></div>
+                <button class="page-btn" id="nextPage" disabled>→</button>
+                <select id="itemsPerPage">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="export-btn" id="exportBtn">📥 Экспорт в CSV</button>
+        </div>
+    </div>
+
+    <script>
+        // ДАННЫЕ НАПРЯМУЮ ИЗ ФАЙЛА (ВРЕМЕННОЕ РЕШЕНИЕ)
+        const employees = [
+            { "name": "Алексеева Марина Александровна", "email": "alekseeva@transles.biz" },
+            { "name": "Аленичева Ирина Васильевна", "email": "alenicheva_iv@transles.biz" },
+            { "name": "Алышева Юлия Олеговна", "email": "alysheva_yo@transles.biz" },
+            { "name": "Андриянова Татьяна Анатольевна", "email": "Andriyanova_TA@transles.biz" },
+            { "name": "Артамонов Андрей Андреевич", "email": "artamonov_aa@transles.biz" },
+            { "name": "Артамонов Артем Анатольевич ИТ", "email": "Artamonov_a@transles.biz" },
+            { "name": "Архангельский Андрей Михайлович", "email": "arhangelsky@transles.biz" },
+            { "name": "Афинова Ольга Викторовна", "email": "afinova_ov@transles.biz" },
+            { "name": "Багаева Алёна Ивановна", "email": "bagaeva.kras@transles.biz" },
+            { "name": "Балабанова Рената Ринатовна", "email": "balabanova_rr@transles.biz" }
+        ]; // Добавьте остальных сотрудников по аналогии
+
+        let filteredEmployees = [...employees];
+        let currentPage = 1;
+        let itemsPerPage = 20;
+        let searchTerm = '';
+
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const totalCountSpan = document.getElementById('totalCount');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const pageNumbersDiv = document.getElementById('pageNumbers');
+        const itemsPerPageSelect = document.getElementById('itemsPerPage');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Обновление статистики
+        totalCountSpan.textContent = employees.length;
+
+        function renderTable() {
+            let startIndex = (currentPage - 1) * itemsPerPage;
+            let endIndex = Math.min(startIndex + itemsPerPage, filteredEmployees.length);
+            let paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+
             let html = '';
             paginatedEmployees.forEach((emp, index) => {
-                const rowNumber = itemsPerPage === 'all' ? index + 1 : startIndex + index + 1;
                 html += `
                     <tr>
-                        <td>${rowNumber}</td>
+                        <td>${startIndex + index + 1}</td>
                         <td>${emp.name}</td>
-                        <td>
-                            <a href="mailto:${emp.email}" class="email-link">
-                                ${emp.email}
-                            </a>
-                        </td>
+                        <td><a href="mailto:${emp.email}" class="email-link">${emp.email}</a></td>
                     </tr>
                 `;
             });
-            tableBody.innerHTML = html;
-        }
-
-        updatePagination();
-    }
-
-    // Обновление пагинации
-    function updatePagination() {
-        const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredEmployees.length / parseInt(itemsPerPage));
-        
-        prevPageBtn.disabled = currentPage === 1;
-        nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
-
-        let pageNumbersHtml = '';
-        const maxVisiblePages = 5;
-        
-        if (totalPages > 0) {
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
             
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-
-            if (startPage > 1) {
-                pageNumbersHtml += `<button class="page-btn" data-page="1">1</button>`;
-                if (startPage > 2) {
-                    pageNumbersHtml += `<span style="padding: 0 5px;">...</span>`;
-                }
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                pageNumbersHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    pageNumbersHtml += `<span style="padding: 0 5px;">...</span>`;
-                }
-                pageNumbersHtml += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
+            if (html === '') {
+                tableBody.innerHTML = '<tr><td colspan="3">😕 Ничего не найдено</td></tr>';
+            } else {
+                tableBody.innerHTML = html;
             }
         }
 
-        pageNumbersDiv.innerHTML = pageNumbersHtml;
+        function filterEmployees() {
+            if (!searchTerm.trim()) {
+                filteredEmployees = [...employees];
+            } else {
+                const term = searchTerm.toLowerCase().trim();
+                filteredEmployees = employees.filter(emp => 
+                    emp.name.toLowerCase().includes(term) || 
+                    emp.email.toLowerCase().includes(term)
+                );
+            }
+            currentPage = 1;
+            renderTable();
+        }
 
-        document.querySelectorAll('.page-btn[data-page]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentPage = parseInt(btn.dataset.page);
-                renderTable();
-            });
+        searchInput.addEventListener('input', filterEmployees);
+        
+        itemsPerPageSelect.addEventListener('change', (e) => {
+            itemsPerPage = parseInt(e.target.value);
+            currentPage = 1;
+            renderTable();
         });
-    }
 
-    // Обработчики событий
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            searchTerm = e.target.value;
-            filterEmployees();
-        });
-    }
-
-    if (prevPageBtn) {
         prevPageBtn.addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
                 renderTable();
             }
         });
-    }
 
-    if (nextPageBtn) {
         nextPageBtn.addEventListener('click', () => {
-            const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredEmployees.length / parseInt(itemsPerPage));
-            if (currentPage < totalPages) {
+            if (currentPage < Math.ceil(filteredEmployees.length / itemsPerPage)) {
                 currentPage++;
                 renderTable();
             }
         });
-    }
 
-    if (itemsPerPageSelect) {
-        itemsPerPageSelect.addEventListener('change', (e) => {
-            itemsPerPage = e.target.value;
-            currentPage = 1;
-            renderTable();
-        });
-    }
-
-    if (exportBtn) {
         exportBtn.addEventListener('click', () => {
             const dataToExport = searchTerm ? filteredEmployees : employees;
-            
-            if (dataToExport.length === 0) {
-                alert('Нет данных для экспорта');
-                return;
-            }
-
             let csvContent = "ФИО;Email\n";
             dataToExport.forEach(emp => {
                 csvContent += `"${emp.name}","${emp.email}"\n`;
             });
-
+            
             const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.href = url;
-            link.setAttribute('download', 'employees.csv');
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = 'employees.csv';
             link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
         });
-    }
 
-    // Загружаем данные при старте
-    loadEmployees();
-    
-    // Обновляем каждые 5 минут
-    setInterval(loadEmployees, 5 * 60 * 1000);
-</script>
-
+        renderTable();
+    </script>
+</body>
+</html>
